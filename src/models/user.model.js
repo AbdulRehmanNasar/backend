@@ -46,7 +46,7 @@ const userSchema = new Schema({
 
 userSchema.pre("save", async function(next) {  // not using call back with arrow function because arrow function don't have this(don't know context)
     if(!this.isModified("password")) return next();
-    this.password = bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10)
     next()
 })
 
