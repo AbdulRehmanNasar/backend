@@ -1,4 +1,5 @@
 import mongoose, {Schema} from "mongoose";
+import { type } from "os";
 
 
 const likeSchema = new Schema({
@@ -18,7 +19,10 @@ const likeSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User"
     },
-    
+    isLiked: {
+        type: Boolean,
+        default: false
+    }
 }, {timestamps: true})
 
 export const Like = mongoose.model("Like", likeSchema)

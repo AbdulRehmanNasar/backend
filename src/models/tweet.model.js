@@ -5,6 +5,12 @@ const tweetSchema = new Schema({
         type: String,
         required: true
     },
+    tweetImage: {
+        type: String,
+    },
+    tweetVideo: {
+        type: String,
+    },
     owner: {
         type: Schema.Types.ObjectId,
         ref: "User"

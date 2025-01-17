@@ -6,7 +6,7 @@ const videoSchema = new Schema({
         type: String, //from 3rd party like cloudinary
         required: true
     },
-    thumbnail: {
+    thumbnailFile: {
         type: String, //also from 3rd party
         required: true
     },
@@ -17,6 +17,9 @@ const videoSchema = new Schema({
     description: {
         type: String,
         required: true
+    },
+    tags: {
+        type: Array,
     },
     duration: {
         type: Number, //also from 3rd party
