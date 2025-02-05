@@ -101,7 +101,7 @@ const loginUser = asyncDbHandler ( async (req, res) => {
     const {username, email, password} = req.body
 
     if (!(username || email)) {
-        throw new apiErrors(400, "Username and email is required")
+        throw new apiErrors(400, "Username or email is required")
     }
 
     const user = await User.findOne({$or: [{username}, {email}]})
@@ -176,13 +176,18 @@ const refreshAccessToken = asyncDbHandler ( async (req, res) => {
     try {
         const decodedRefreshToken = jwt.verify( cookieRefreshToken, process.env.REFRESH_TOKEN_SECRET)
     
-        const user = User.findById(decodedRefreshToken?._id).select("-password")
+        const user = await User.findById(decodedRefreshToken?._id).select("-password")
+
+        console.log("User: ", user);
+        console.log("Decoded Refresh Token: ", decodedRefreshToken);
+        console.log("User Refresh Token: ", user?.refreshToken);
+        
     
         if ( !user ) {
             throw new apiErrors(401, "Invalid refresh token")
         }
     
-        if ( decodedRefreshToken !== user?.refreshToken) {
+        if ( cookieRefreshToken !== user?.refreshToken) {
             throw new apiErrors(401, "Refresh token is expired or used")
         }
     
@@ -235,15 +240,27 @@ const updateCurrentPassword = asyncDbHandler ( async (req, res) => {
 })
 
 const getCurrentUser = asyncDbHandler ( async (req, res) => {
-    return res
-    .status(200)
-    .json(new apiResponse(200, req.user.select("-password -refreshToken"), "Got current user!"))
+    try {
+        const userId = req.user._id
+        const user = await User.findById(userId).select("-password -refreshToken");
+
+        if (!user) {
+            throw new apiErrors(404, "User not found!");
+        }
+
+        return res
+        .status(200)
+        .json(new apiResponse(200, user, "Got current user!"))
+    } 
+    catch (error) {
+        throw new apiErrors(500, "Could not fetch the user", error)
+    }
 })
 
 const updateAccountDetails = asyncDbHandler ( async (req, res) => {
     const {fullname, email} = req.body
 
-    if (!fullname || !email) {
+    if (!(fullname || email)) {
         throw new apiErrors(400, "Fields are empty to update account details")
     }
 

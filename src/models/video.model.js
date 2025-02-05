@@ -3,12 +3,32 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
 
 const videoSchema = new Schema({
     videoFile: {
-        type: String, //from 3rd party like cloudinary
-        required: true
+        videoURL: {
+            type: String,
+            required: true
+        },
+        publicId: {
+            type: String,
+            required: true
+        },
+        format: {
+            type: String
+        },
+        width: {
+            type: Number
+        },
+        height: {
+            type: Number
+        }
     },
     thumbnailFile: {
-        type: String, //also from 3rd party
-        required: true
+        thumbnailURL: {
+            type: String,
+            required: true
+        },
+        publicId: {
+            type: String,
+        }
     },
     title: {
         type: String,

@@ -1,8 +1,9 @@
 import mongoose, { isValidObjectId } from "mongoose"
 import {Tweet} from "../models/tweet.model.js"
-import {apiError} from "../utils/apiError.js"
+import {apiErrors as apiError} from "../utils/apiErrors.js"
 import {apiResponse} from "../utils/apiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
+import {asyncDbHandler as asyncHandler} from "../utils/asyncDbHandler.js"
+import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { v2 as cloudinary } from 'cloudinary';
 
 const createTweet = asyncHandler(async (req, res) => {
@@ -22,7 +23,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
     try {
         if (req.files?.tweetImage) {
-            const tweetImageLocalPath = req.files.tweetImage[0].path;
+            const tweetImageLocalPath = req.files?.tweetImage[0].path;
             tweetImageFile = await uploadOnCloudinary(tweetImageLocalPath);
             if (!tweetImageFile) {
                 throw new apiError(500, "Error uploading image to Cloudinary.");
@@ -30,23 +31,38 @@ const createTweet = asyncHandler(async (req, res) => {
         }
 
         if (req.files?.tweetVideo) {
-            const tweetVideoLocalPath = req.files.tweetVideo[0].path;
+            const tweetVideoLocalPath = req.files?.tweetVideo[0].path;
             tweetVideoFile = await uploadOnCloudinary(tweetVideoLocalPath);
             if (!tweetVideoFile) {
                 throw new apiError(500, "Error uploading video to Cloudinary.");
             }
         }
 
-        const tweet = await Tweet.create({
-            content,
-            tweetImage: tweetImageFile ? {url: tweetImageFile.url, public_id: tweetImageFile.public_id} : null,
-            tweetVideo: tweetVideoFile ? {url: tweetVideoFile.url, public_id: tweetVideoFile.public_id} : null,
-            owner
-        });
+        let tweet;
+
+        try {
+            tweet = await Tweet.create({
+                content,
+                tweetImage: {
+                    imageURL: tweetImageFile?.url ?? null,
+                    publicId: tweetImageFile?.public_id ?? null
+                },
+                tweetVideo: {
+                    videoURL: tweetVideoFile?.url ?? null,
+                    publicId: tweetVideoFile?.public_id ?? null,
+                    format: tweetVideoFile?.format ?? null,
+                    width: tweetVideoFile?.width ?? null,
+                    height: tweetVideoFile?.height ?? null
+                },
+                owner
+            });
+        } catch (error) {
+            throw new apiError(500, "An error occurred while creating the tweet.", error);
+        }
 
         return res.status(201).json(new apiResponse(201, tweet, "Tweet posted successfully!"));
     } catch (error) {
-        throw new apiError(500, error.message || "An error occurred while posting the tweet.");
+        throw new apiError(500, "An error occurred while posting the tweet.", error);
     }
 });
 
@@ -62,7 +78,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
         const userTweets = await Tweet.aggregate([
             {
                 $match: {
-                    owner: mongoose.Types.ObjectId(userId)
+                    owner: new mongoose.Types.ObjectId(userId)
                 },
             },
             {
@@ -100,7 +116,7 @@ const updateTweet = asyncHandler(async (req, res) => {
     try {
         tweet = await Tweet.findById(tweetId)
     } catch (error) {
-        throw new apiError(500, "Could not fetch the tweet")
+        throw new apiError(500, "Could not fetch the tweet", error)
     }
 
     if (!tweet) {
@@ -116,19 +132,26 @@ const updateTweet = asyncHandler(async (req, res) => {
     if ( tweetImagePath ) {
         try {
             tweetImageFile = await uploadOnCloudinary(tweetImagePath);
+            tweet.tweetImage.imageURL = tweetImageFile.url,
+            tweet.tweetImage.publicId = tweetImageFile.public_id
         } catch (error) {
-            throw new apiError(500, "Failed to upload tweet image to cloudinary")
+            throw new apiError(500, "Failed to upload tweet image to cloudinary", error)
         }
-        await cloudinary.uploader.destroy(tweet.tweetImage.public_id)
+        await cloudinary.uploader.destroy(tweet.tweetImage.publicId)
     }
 
     if ( tweetVideoPath ) {
         try {
             tweetVideoFile = await uploadOnCloudinary(tweetVideoPath);
+            tweet.tweetVideo.videoURL = tweetVideoFile.url,
+            tweet.tweetVideo.publicId = tweetVideoFile.public_id,
+            tweet.tweetVideo.format = tweetVideoFile.format,
+            tweet.tweetVideo.width = tweetVideoFile.width,
+            tweet.tweetVideo.height = tweetVideoFile.height
         } catch (error) {
-            throw new apiError(500, "Failed to upload tweet video to cloudinary")
+            throw new apiError(500, "Failed to upload tweet video to cloudinary", error)
         }
-        await cloudinary.uploader.destroy(tweet.tweetVideo.public_id)
+        await cloudinary.uploader.destroy(tweet.tweetVideo.publicId)
     }
 
     if (content) tweet.content = content
@@ -159,17 +182,17 @@ const deleteTweet = asyncHandler(async (req, res) => {
         }
 
         try {
-            if (tweet.tweetImage?.public_id) {
-                await cloudinary.uploader.destroy(tweet.tweetImage.public_id);
+            if (tweet.tweetImage?.publicId) {
+                await cloudinary.uploader.destroy(tweet.tweetImage.publicId);
             }
-            if (tweet.tweetVideo?.public_id) {
-                await cloudinary.uploader.destroy(tweet.tweetVideo.public_id);
+            if (tweet.tweetVideo?.publicId) {
+                await cloudinary.uploader.destroy(tweet.tweetVideo.publicId);
             }
         } catch (error) {
-            throw new apiError(500, "Failed to delete media files from Cloudinary.");
+            throw new apiError(500, "Failed to delete media files from Cloudinary.", error);
         }
 
-        const deleteTweet = await Tweet.findByIdAndDelete(mongoose.Types.ObjectId(tweetId))
+        const deleteTweet = await Tweet.findByIdAndDelete(new mongoose.Types.ObjectId(tweetId))
 
         if (!deleteTweet) {
             console.log("Tweet is not deleted!");
@@ -185,7 +208,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
             )
         )
     } catch (error) {
-        throw new apiError(500, "Could not delete the tweet!")
+        throw new apiError(500, "Could not delete the tweet!", error)
     }
 })
 

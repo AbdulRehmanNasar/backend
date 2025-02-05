@@ -2,9 +2,9 @@ import mongoose from "mongoose"
 import {Video} from "../models/video.model.js"
 import {Subscription} from "../models/subscription.model.js"
 import {Like} from "../models/like.model.js"
-import {apiError} from "../utils/apiError.js"
+import {apiErrors as apiError} from "../utils/apiErrors.js"
 import {apiResponse} from "../utils/apiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
+import {asyncDbHandler as asyncHandler} from "../utils/asyncDbHandler.js"
 
 const getChannelStats = asyncHandler(async (req, res) => {
     const channelId = req.user._id;
@@ -94,7 +94,9 @@ const getChannelStats = asyncHandler(async (req, res) => {
 
         res
         .status(200)
-        .json( new apiResponse(200, data: {
+        .json( new apiResponse(
+            200,
+            {data: {
                 totalSubscribers,
                 ...videoInsights[0] || {
                     totalVideos: 0,
@@ -103,14 +105,14 @@ const getChannelStats = asyncHandler(async (req, res) => {
                     totalLikes: 0,
                     totalComments: 0
                 }
-            }, "Channel stats fetched successfully!")
+            }},
+            "Channel stats fetched successfully!")
         );
 
     } catch (error) {
         throw new apiError(500, "Failed to fetch channel stats.");
     }
 });
-
 
 const getChannelVideos = asyncHandler(async (req, res) => {
     // TODO: Get all the videos uploaded by the channel

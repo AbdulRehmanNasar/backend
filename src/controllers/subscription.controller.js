@@ -1,13 +1,13 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {User} from "../models/user.model.js"
 import { Subscription } from "../models/subscription.model.js"
-import {apiError} from "../utils/apiError.js"
+import {apiErrors as apiError} from "../utils/apiErrors.js"
 import {apiResponse} from "../utils/apiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
+import {asyncDbHandler} from "../utils/asyncDbHandler.js"
 import { unsubscribe } from "diagnostics_channel"
 
 
-const toggleSubscription = asyncHandler(async (req, res) => {
+const toggleSubscription = asyncDbHandler(async (req, res) => {
     const {channelId} = req.params
     const userId = req.user._id
     // TODO: toggle subscription
@@ -61,7 +61,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 })
 
 // controller to return subscriber list of a channel
-const getUserChannelSubscribers = asyncHandler(async (req, res) => {
+const getUserChannelSubscribers = asyncDbHandler(async (req, res) => {
     const {channelId} = req.params
 
     if ( !channelId || !mongoose.Types.ObjectId.isValid(channelId) ) {
@@ -113,7 +113,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 })
 
 // controller to return channel list to which user has subscribed
-const getSubscribedChannels = asyncHandler(async (req, res) => {
+const getSubscribedChannels = asyncDbHandler(async (req, res) => {
     const { subscriberId } = req.params
 
     if (!subscriberId || !mongoose.Types.ObjectId.isValid(subscriberId)) {

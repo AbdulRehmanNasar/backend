@@ -5,11 +5,32 @@ const tweetSchema = new Schema({
         type: String,
         required: true
     },
-    tweetImage: {
-        type: String,
-    },
     tweetVideo: {
-        type: String,
+        videoURL: {
+            type: String,
+        },
+        publicId: {
+            type: String,
+            required: true
+        },
+        format: {
+            type: String
+        },
+        width: {
+            type: Number
+        },
+        height: {
+            type: Number
+        }
+    },
+    tweetImage: {
+        imageURL: {
+            type: String,
+        },
+        publicId: {
+            type: String,
+            required: true
+        }
     },
     owner: {
         type: Schema.Types.ObjectId,
