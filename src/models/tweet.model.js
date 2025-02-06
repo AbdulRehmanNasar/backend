@@ -11,7 +11,6 @@ const tweetSchema = new Schema({
         },
         publicId: {
             type: String,
-            required: true
         },
         format: {
             type: String
@@ -29,7 +28,6 @@ const tweetSchema = new Schema({
         },
         publicId: {
             type: String,
-            required: true
         }
     },
     owner: {

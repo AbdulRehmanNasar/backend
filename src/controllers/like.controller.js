@@ -5,152 +5,150 @@ import {apiResponse} from "../utils/apiResponse.js"
 import {asyncDbHandler as asyncHandler} from "../utils/asyncDbHandler.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
-    const {videoId} = req.params
-    //TODO: toggle like on video
+    const { videoId } = req.params;
+    const userId = req.user._id;
+
     if (!videoId || !mongoose.Types.ObjectId.isValid(videoId)) {
         throw new apiError(400, "VideoId or format is incorrect");
     }
-    let videoLikeStatus;
+
     try {
-        videoLikeStatus = await Like.aggregate([
-            {
-                $match: mongoose.Types.ObjectId(videoId)
-            }
-        ])
+        let isVideoLiked = await Like.findOne({ 
+            video: videoId, 
+            likedBy: userId 
+        });
 
-        if (!videoLikeStatus) {
-            console.log("Could not get the status of liked video");
+        if (!isVideoLiked) {
+            const newLike = await Like.create({
+                video: videoId,
+                likedBy: userId,
+                isLiked: true
+            });
+
+            return res.status(200).json(
+                new apiResponse(200, newLike, "Video like status toggled successfully to liked!")
+            );
+        } else {
+            const unliked = await Like.deleteOne({ _id: isVideoLiked._id });
+
+            return res.status(200).json(
+                new apiResponse(200, unliked, "Video like status toggled successfully to unliked!")
+            );
         }
-
-        const videoCurrentLikeStatus = videoLikeStatus.isLiked;
-        videoLikeStatus.isLiked = !videoCurrentLikeStatus
-
-        if (videoCurrentLikeStatus !== videoLikeStatus.isLiked) {
-            await videoLikeStatus.save();
-        }
-
     } catch (error) {
-        throw new apiError(500, "Error while toggling video like status")
+        console.error(error);
+        throw new apiError(500, "Error while toggling video like status", error.message);
     }
-
-    return res
-    .status(200)
-    .json(
-        new apiResponse(200, videoLikeStatus.isLiked, "Video like status toggled successfully!")
-    )
-})
+});
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
-    const {commentId} = req.params
-    //TODO: toggle like on comment
+    const { commentId } = req.params;
+
     if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
         throw new apiError(400, "CommentId or format is incorrect");
     }
+
     let commentLikeStatus;
+
     try {
-        commentLikeStatus = await Like.aggregate([
-            {
-                $match: mongoose.Types.ObjectId(commentId)
-            }
-        ])
+        commentLikeStatus = await Like.findOneAndUpdate(
+            { comment: commentId },
+            { $bit: { isLiked: { xor: 1 } } },
+            { new: true }
+        );
 
         if (!commentLikeStatus) {
-            console.log("Could not get the status of liked comment");
-        }
-
-        const commentCurrentLikeStatus = commentLikeStatus.isLiked;
-        commentLikeStatus.isLiked = !commentCurrentLikeStatus
-
-        if (commentCurrentLikeStatus !== commentLikeStatus.isLiked) {
-            await commentLikeStatus.save();
+            commentLikeStatus = await Like.create({
+                comment: commentId,
+                isLiked: 1,
+            });
         }
 
     } catch (error) {
-        throw new apiError(500, "Error while toggling comment like status")
+        throw new apiError(500, "Error while toggling comment like status", error);
     }
 
     return res
-    .status(200)
-    .json(
-        new apiResponse(200, commentLikeStatus.isLiked, "Comment like status toggled successfully!")
-    )
-})
+        .status(200)
+        .json(
+            new apiResponse(200, commentLikeStatus.isLiked, "Comment like status toggled successfully!")
+        );
+});
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
-    const {tweetId} = req.params
-    //TODO: toggle like on tweet
+    const { tweetId } = req.params;
+
     if (!tweetId || !mongoose.Types.ObjectId.isValid(tweetId)) {
         throw new apiError(400, "TweetId or format is incorrect");
     }
-    let likeStatus;
+
+    let tweetLikeStatus;
     try {
-        likeStatus = await Like.aggregate([
-            {
-                $match: mongoose.Types.ObjectId(tweetId)
-            }
-        ])
+        tweetLikeStatus = await Like.findOneAndUpdate(
+            { tweet: tweetId },
+            { $bit: { isLiked: { xor: 1 } } },
+            { new: true }
+        );
 
-        if (!likeStatus) {
-            console.log("Could not get the status of like");
-        }
-
-        const currentLikeStatus = likeStatus.isLiked;
-        likeStatus.isLiked = !currentLikeStatus
-
-        if (currentLikeStatus !== likeStatus.isLiked) {
-            await likeStatus.save();
+        if (!tweetLikeStatus) {
+            tweetLikeStatus = await Like.create({
+                tweet: tweetId,
+                isLiked: 1,
+            });
         }
 
     } catch (error) {
-        throw new apiError(500, "Error while toggling tweet like status")
+        throw new apiError(500, "Error while toggling tweet like status", error);
     }
 
     return res
-    .status(200)
-    .json(
-        new apiResponse(200, likeStatus.isLiked, "Tweet like status toggled successfully!")
-    )
-}
-)
+        .status(200)
+        .json(
+            new apiResponse(200, tweetLikeStatus.isLiked, "Tweet like status toggled successfully!")
+        );
+});
 
 const getLikedVideos = asyncHandler(async (req, res) => {
-    //TODO: get all liked videos
     const userId = req.user._id;
+
     if (!userId) {
-        throw new apiError(400, "Inelegible request | User not found!")
+        throw new apiError(400, "Ineligible request | User not found!");
     }
-    let likedVideos;
+
     try {
-        likedVideos = await Like.aggregate([
+        const likedVideos = await Like.aggregate([
             {
                 $match: {
                     likedBy: userId
                 }
             },
             {
-                $sort: {
-                    createdAt: -1
+                $lookup: {
+                    from: "videos",
+                    localField: "video",
+                    foreignField: "_id",
+                    as: "videoDetails"
                 }
-            }
-        ])
-        if (!likedVideos) {
-            console.log("Could not get any liked video in getLikedVideos");
-            throw new apiError(404, "There is no video liked by the user!")
+            },
+            { $sort: { createdAt: -1 } }
+        ]);
+
+        const filteredVideos = likedVideos.filter(video => video.videoDetails.length > 0);
+        if (filteredVideos.length === 0) {
+            throw new apiError(404, "There is no valid video liked by the user!");
         }
-    } catch (error) {
-        throw new apiError(500, "Could not fetch the liked videos for the user!")
-    }
 
-    if (likedVideos.length !== 0) {
+
         console.log("Fetched liked videos successfully!");
-    }
 
-    return res
-    .status(200)
-    .json(
-        new apiResponse(200, likedVideos, "Fetched liked videos successfully!")
-    )
-})
+        return res.status(200).json(
+            new apiResponse(200, likedVideos, "Fetched liked videos successfully!")
+        );
+
+    } catch (error) {
+        throw new apiError(500, "Could not fetch the liked videos for the user!", error);
+    }
+});
 
 export {
     toggleCommentLike,

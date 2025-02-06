@@ -18,7 +18,7 @@ router.route("/channel-subscribers/:channelId")
     getUserChannelSubscribers
 )
 
-router.route("/subscribed-channels/:channelId")
+router.route("/subscribed-channels/:subscriberId")
 .get(
     verifyJWT,
     getSubscribedChannels

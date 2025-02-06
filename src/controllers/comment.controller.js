@@ -20,7 +20,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
             await Comment.aggregate([
             {
                 $match: {
-                    video: mongoose.Types.ObjectId(videoId)
+                    video: videoId
                 }
             },
             {
@@ -34,7 +34,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
             throw new apiError(404, "No comments found for the video.")
         }
     } catch (error) {
-        throw new apiError(500, "Couldn't get the comments for the video")
+        throw new apiError(500, "Couldn't get the comments for the video", error)
     }
 
     return res
@@ -46,7 +46,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 const addComment = asyncHandler(async (req, res) => {
     // TODO: add a comment to a video
-    const content = req.body;
+    const { content } = req.body;
     const { videoId } = req.params
     const userId = req.user._id
     let createdComment;
@@ -66,7 +66,7 @@ const addComment = asyncHandler(async (req, res) => {
     try {
         createdComment = await Comment.create({
             content,
-            video: mongoose.Types.ObjectId(videoId),
+            video: new mongoose.Types.ObjectId(videoId),
             owner: userId
         })
         if (!createdComment) {

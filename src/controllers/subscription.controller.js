@@ -116,9 +116,11 @@ const getUserChannelSubscribers = asyncDbHandler(async (req, res) => {
 const getSubscribedChannels = asyncDbHandler(async (req, res) => {
     const { subscriberId } = req.params
 
-    if (!subscriberId || !mongoose.Types.ObjectId.isValid(subscriberId)) {
-        throw new apiError(400, "Subscriber ID is missing or invalid.");
-    }
+        if (!subscriberId || !mongoose.Types.ObjectId.isValid(subscriberId)) {
+            console.log("Subscriber id: ", subscriberId);
+            
+            throw new apiError(400, "Subscriber ID is missing or invalid.");
+        }
 
     try {
         const channelsSubscribed = await Subscription.aggregate([
@@ -160,7 +162,7 @@ const getSubscribedChannels = asyncDbHandler(async (req, res) => {
     )
 
     } catch (error) {
-        throw new apiError(500, "Error occured during fetching subscribed channels list!")
+        throw new apiError(500, "Error occured during fetching subscribed channels list!", error)
     }
 })
 

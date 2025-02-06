@@ -2,6 +2,7 @@ import mongoose from "mongoose"
 import {Video} from "../models/video.model.js"
 import {Subscription} from "../models/subscription.model.js"
 import {Like} from "../models/like.model.js"
+import {User} from "../models/user.model.js"
 import {apiErrors as apiError} from "../utils/apiErrors.js"
 import {apiResponse} from "../utils/apiResponse.js"
 import {asyncDbHandler as asyncHandler} from "../utils/asyncDbHandler.js"
@@ -123,7 +124,6 @@ const getChannelVideos = asyncHandler(async (req, res) => {
     }
 
     try {
-
         const userExists = await User.findById(channelId);
 
         if (!userExists) {

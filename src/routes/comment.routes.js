@@ -25,7 +25,7 @@ router.route("/update-comment/:commentId")
 )
 
 router.route("/delete-comment/:commentId")
-.patch(
+.delete(
     verifyJWT,
     deleteComment
 )
